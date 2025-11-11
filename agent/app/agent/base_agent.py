@@ -32,3 +32,16 @@ class BaseAgent(ABC):
             The agent response.
         """
         pass
+
+    @abstractmethod
+    async def stream_invoke(self, data: Any):
+        """
+        Stream the agent execution with token-by-token output. Must be implemented by subclasses.
+
+        Args:
+            data: The input data to process.
+
+        Yields:
+            Dict with streaming events (tokens, status, etc.)
+        """
+        pass
