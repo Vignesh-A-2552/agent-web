@@ -1,11 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from app.agent.research_agent.research_agent import ResearchAgent
+from app.api.dependencies import get_research_agent
 
 router = APIRouter(prefix="/api/v1")
 
-# Initialize the research agent
-research_agent = ResearchAgent()
+
 
 
 class ChatRequest(BaseModel):
@@ -25,8 +25,11 @@ def read_chat():
     return {"message": "This is the chat endpoint"}
 
 
-@router.post("/chat/research")
-async def research_chat(request: ChatRequest) -> ChatResponse:
+@router.post("/chat/research", response_model=ChatResponse)
+async def research_chat(
+    request: ChatRequest,
+    agent: ResearchAgent=Depends(get_research_agent)
+):
     """
     Research chat endpoint that uses the Research Agent.
 
@@ -36,15 +39,13 @@ async def research_chat(request: ChatRequest) -> ChatResponse:
     Returns:
         ChatResponse with research summary and documents
     """
-    # Build the agent if not already built
-    if research_agent.agent is None:
-        await research_agent.build_agent()
 
     # Invoke the research agent
-    result = await research_agent.invoke({"user_input": request.query})
+    result = await agent.invoke({"user_input": request.query})
 
-    # Return the response
-    return ChatResponse(
-        research_summary=result.get("research_summary", ""),
-        research_documents=result.get("research_documents", "")
-    )
+    # Return a plain dictionary instead of ChatResponse object
+    # This prevents FastAPI from trying to validate the complex LangGraph state
+    return {
+        "research_summary": result.get("research_summary", ""),
+        "research_documents": result.get("research_documents", "")
+    }
